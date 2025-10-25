@@ -32,6 +32,6 @@ class Project extends Model
 
     public function tasks()
     {
-        return $this->hasMany(Task::class); // Temporal: comentado hasta crear modelo Task
+        return $this->hasMany(Task::class);
     }
 }

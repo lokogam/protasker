@@ -14,7 +14,7 @@ class ProjectService
      */
     public function getAllProjects(array $filters = []): LengthAwarePaginator
     {
-        $query = Project::with(['user']); // Temporal: remover 'tasks' hasta que exista
+        $query = Project::with(['user', 'tasks']);
 
         // Filtrar por usuario si es desarrollador
         if (isset($filters['user_id'])) {
@@ -34,7 +34,7 @@ class ProjectService
      */
     public function getUserProjects(User $user): Collection
     {
-        return Project::query() // Temporal: remover with(['tasks']) hasta que exista
+        return Project::with(['tasks'])
             ->where('user_id', $user->id)
             ->get();
     }
@@ -55,7 +55,7 @@ class ProjectService
      */
     public function findProject(int $id): ?Project
     {
-        return Project::with(['user'])->find($id); // Temporal: remover 'tasks' hasta que exista
+        return Project::with(['user', 'tasks'])->find($id);
     }
 
     /**
@@ -68,7 +68,7 @@ class ProjectService
         // Recalcular progreso si hay tareas
         $this->updateProjectProgress($project);
 
-        return $project->fresh(['user']); // Temporal: remover 'tasks' hasta que exista
+        return $project->fresh(['user', 'tasks']);
     }
 
     /**
@@ -84,8 +84,6 @@ class ProjectService
      */
     public function updateProjectProgress(Project $project): void
     {
-        // Temporal: cuando se implemente Task, descomentar
-        /*
         $totalTasks = $project->tasks()->count();
 
         if ($totalTasks === 0) {
@@ -97,13 +95,7 @@ class ProjectService
         $progress = ($completedTasks / $totalTasks) * 100;
 
         $project->update(['progress' => round($progress, 2)]);
-        */
-
-        // Por ahora mantener progreso actual
-        $project->update(['progress' => $project->progress ?? 0.00]);
-    }
-
-    /**
+    }    /**
      * Check if user can access project
      */
     public function canUserAccessProject(User $user, Project $project): bool

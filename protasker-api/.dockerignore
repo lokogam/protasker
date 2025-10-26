@@ -1,0 +1,31 @@
+# Laravel specific ignores
+/vendor
+/node_modules
+/public/hot
+/public/storage
+/storage/*.key
+.env
+.env.backup
+.phpunit.result.cache
+Homestead.json
+Homestead.yaml
+npm-debug.log
+yarn-error.log
+
+# Build outputs
+/public/build
+
+# IDE
+.vscode
+.idea
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Testing
+/coverage
+.phpunit.cache
+
+# Logs
+*.log

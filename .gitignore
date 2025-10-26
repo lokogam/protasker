@@ -1,3 +1,4 @@
 doc/utils/*
 doc/Requisitos.txt
 .github/copilot-instructions.md
+protasker-web/.env

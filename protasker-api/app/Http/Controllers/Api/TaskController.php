@@ -43,6 +43,27 @@ class TaskController extends Controller
     }
 
     /**
+     * Display all tasks in the system (admin view).
+     */
+    public function all(Request $request): AnonymousResourceCollection
+    {
+        $user = $request->user();
+        $filters = $request->only(['status', 'assigned_to', 'project_id']);
+
+        // Solo administradores pueden ver todas las tareas sin restricciones
+        if ($user->hasRole('desarrollador')) {
+            // Para desarrolladores, mostrar solo:
+            // 1. Tareas asignadas a él
+            // 2. Tareas de proyectos que le pertenecen
+            $filters['developer_scope'] = $user->id;
+        }
+
+        $tasks = $this->taskService->getAllTasks($filters);
+
+        return TaskResource::collection($tasks);
+    }
+
+    /**
      * Store a newly created resource in storage.
      */
     public function store(StoreTaskRequest $request): TaskResource|JsonResponse

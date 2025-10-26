@@ -23,6 +23,8 @@ class TaskResource extends JsonResource
             'due_date' => $this->due_date?->format('Y-m-d'),
             'created_at' => $this->created_at?->format('Y-m-d H:i:s'),
             'updated_at' => $this->updated_at?->format('Y-m-d H:i:s'),
+            'project_id' => $this->project_id,
+            'assigned_to' => $this->assigned_to,
             'project' => [
                 'id' => $this->project->id,
                 'name' => $this->project->name,

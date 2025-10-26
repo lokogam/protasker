@@ -17,6 +17,18 @@ class TaskService
     {
         $query = Task::with(['project', 'assignedUser']);
 
+        // Filtro especial para desarrolladores
+        if (isset($filters['developer_scope'])) {
+            $userId = $filters['developer_scope'];
+            $query->where(function ($q) use ($userId) {
+                $q->where('assigned_to', $userId) // Tareas asignadas a él
+                  ->orWhereHas('project', function ($projectQuery) use ($userId) {
+                      $projectQuery->where('user_id', $userId); // Tareas de sus proyectos
+                  });
+            });
+            unset($filters['developer_scope']); // Remover del array para evitar conflictos
+        }
+
         // Filtrar por proyecto
         if (isset($filters['project_id'])) {
             $query->where('project_id', $filters['project_id']);

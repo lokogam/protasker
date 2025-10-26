@@ -1,5 +1,6 @@
 <script setup>
 import { computed } from 'vue'
+import ProgressBar from '../common/ProgressBar.vue'
 import AppButton from '../common/AppButton.vue'
 
 const props = defineProps({
@@ -13,7 +14,7 @@ const props = defineProps({
   },
   showProject: {
     type: Boolean,
-    default: false
+    default: true
   }
 })
 
@@ -79,9 +80,8 @@ const daysRemaining = computed(() => {
 
 // Progreso visual
 const progressPercentage = computed(() => {
-  if (props.task.status === 'completed') return 100
-  if (props.task.status === 'in_progress') return 50
-  return 0
+  // Usar el percentage real de la tarea, convertido a número
+  return Number(props.task.percentage) || 0
 })
 </script>
 
@@ -116,13 +116,7 @@ const progressPercentage = computed(() => {
         <span class="text-sm text-dark-600">{{ progressPercentage }}%</span>
       </div>
       <div class="w-full bg-dark-200 rounded-full h-2">
-        <div 
-          :class="`h-2 rounded-full transition-all duration-300 ${
-            task.status === 'completed' ? 'bg-secondary-500' :
-            task.status === 'in_progress' ? 'bg-primary-500' : 'bg-dark-300'
-          }`"
-          :style="{ width: `${progressPercentage}%` }"
-        ></div>
+        <ProgressBar :progress="progressPercentage" />
       </div>
     </div>
 
@@ -201,6 +195,7 @@ const progressPercentage = computed(() => {
 .line-clamp-2 {
   display: -webkit-box;
   -webkit-line-clamp: 2;
+  line-clamp: 2;
   -webkit-box-orient: vertical;
   overflow: hidden;
 }

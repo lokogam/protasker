@@ -2,7 +2,6 @@
 import { ref, computed, onMounted } from 'vue'
 import { useAuth } from '../composables/useAuth.js'
 import { useProjects } from '../composables/useProjects.js'
-import { useTasks } from '../composables/useTasks.js'
 import { useRouter } from 'vue-router'
 import ProjectCard from '../components/cards/ProjectCard.vue'
 import ProjectForm from '../components/forms/ProjectForm.vue'
@@ -11,19 +10,14 @@ import AppModal from '../components/common/AppModal.vue'
 
 const { user, logout } = useAuth()
 const router = useRouter()
-const {
-  projects,
-  loading,
-  fetchProjects,
-  createProject,
-  updateProject,
-  deleteProject
+const { 
+  projects, 
+  loading, 
+  fetchProjects, 
+  createProject, 
+  updateProject, 
+  deleteProject 
 } = useProjects()
-
-const {
-  tasks,
-  fetchUserTasks
-} = useTasks()
 
 // Estados del componente
 const showCreateModal = ref(false)
@@ -31,34 +25,50 @@ const showEditModal = ref(false)
 const showDeleteModal = ref(false)
 const selectedProject = ref(null)
 const formLoading = ref(false)
+const filterStatus = ref('all')
+const searchQuery = ref('')
 
-// Computed para filtrar proyectos del desarrollador
-const userProjects = computed(() => {
-  return projects.value.filter(project => project.user?.id === user.value?.id)
+// Computed para todos los proyectos (administrador ve todos)
+const allProjects = computed(() => {
+  let filtered = projects.value
+
+  // Filtrar por estado
+  if (filterStatus.value !== 'all') {
+    filtered = filtered.filter(project => project.status === filterStatus.value)
+  }
+
+  // Filtrar por búsqueda
+  if (searchQuery.value.trim()) {
+    const query = searchQuery.value.toLowerCase()
+    filtered = filtered.filter(project => 
+      project.name.toLowerCase().includes(query) ||
+      project.description?.toLowerCase().includes(query) ||
+      project.user?.name.toLowerCase().includes(query)
+    )
+  }
+
+  return filtered
 })
 
 // Computed para estadísticas
 const stats = computed(() => {
-  const userProjectsList = userProjects.value
   return {
-    total: userProjectsList.length,
-    pending: userProjectsList.filter(p => p.status === 'pending').length,
-    in_progress: userProjectsList.filter(p => p.status === 'in_progress').length,
-    completed: userProjectsList.filter(p => p.status === 'completed').length,
-    cancelled: userProjectsList.filter(p => p.status === 'cancelled').length
+    total: projects.value.length,
+    pending: projects.value.filter(p => p.status === 'pending').length,
+    in_progress: projects.value.filter(p => p.status === 'in_progress').length,
+    completed: projects.value.filter(p => p.status === 'completed').length,
+    cancelled: projects.value.filter(p => p.status === 'cancelled').length
   }
 })
 
-// Computed para estadísticas de tareas asignadas al usuario
-const taskStats = computed(() => {
-  const userTasks = tasks.value.filter(task => task.assigned_user?.id === user.value?.id)
-  return {
-    total: userTasks.length,
-    pending: userTasks.filter(t => t.status === 'pending').length,
-    in_progress: userTasks.filter(t => t.status === 'in_progress').length,
-    completed: userTasks.filter(t => t.status === 'completed').length
-  }
-})
+// Opciones de filtro
+const statusOptions = [
+  { value: 'all', label: 'Todos los Estados' },
+  { value: 'pending', label: 'Pendientes' },
+  { value: 'in_progress', label: 'En Progreso' },
+  { value: 'completed', label: 'Completados' },
+  { value: 'cancelled', label: 'Cancelados' }
+]
 
 // Funciones para manejar proyectos
 const handleCreateProject = async (projectData) => {
@@ -124,9 +134,14 @@ const handleLogout = async () => {
   }
 }
 
-// Navegación
-const goToAllTasks = () => {
-  router.push('/tasks/all')
+// Navegar a vista de usuarios
+const goToUsers = () => {
+  router.push('/admin/users')
+}
+
+// Navegar al dashboard principal
+const goToDashboard = () => {
+  router.push('/dashboard/admin')
 }
 
 // Manejar filtros clickeables desde ProjectCard
@@ -139,9 +154,6 @@ const handleTaskFilter = ({ projectId, status }) => {
 // Cargar proyectos al montar el componente
 onMounted(async () => {
   await fetchProjects()
-  if (user.value?.id) {
-    await fetchUserTasks(user.value.id)
-  }
 })
 </script>
 
@@ -151,26 +163,38 @@ onMounted(async () => {
       <!-- Header -->
       <div class="bg-white rounded-lg shadow-sm border border-dark-200 p-6 mb-6">
         <div class="flex justify-between items-center">
-          <div>
-            <h1 class="text-3xl font-bold text-dark-900">Dashboard Desarrollador</h1>
-            <p class="text-dark-600 mt-2">Bienvenido, {{ user?.name }}</p>
+          <div class="flex items-center space-x-4">
+            <button 
+              @click="goToDashboard"
+              class="flex items-center text-dark-600 hover:text-dark-900 transition-colors"
+            >
+              <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"/>
+              </svg>
+              Dashboard
+            </button>
+            
+            <div class="border-l border-dark-300 pl-4">
+              <h1 class="text-3xl font-bold text-dark-900">Gestión de Proyectos</h1>
+              <p class="text-dark-600 mt-2">Administración de todos los proyectos</p>
+            </div>
           </div>
-
+          
           <div class="flex items-center space-x-3">
             <AppButton
-              variant="info"
-              @click="goToAllTasks"
+              variant="secondary"
+              @click="goToUsers"
             >
-              Ver Todas las Tareas
+              Ver Usuarios
             </AppButton>
-
+            
             <AppButton
               variant="primary"
               @click="showCreateModal = true"
             >
               + Nuevo Proyecto
             </AppButton>
-
+            
             <AppButton
               variant="secondary"
               @click="handleLogout"
@@ -181,7 +205,7 @@ onMounted(async () => {
         </div>
       </div>
 
-      <!-- Estadísticas -->
+      <!-- Estadísticas Generales -->
       <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-6 mb-6">
         <div class="bg-white rounded-lg shadow-sm border border-dark-200 p-6">
           <div class="flex items-center">
@@ -219,7 +243,7 @@ onMounted(async () => {
             </div>
             <div class="w-12 h-12 bg-primary-100 rounded-lg flex items-center justify-center">
               <svg class="w-6 h-6 text-primary-600" fill="currentColor" viewBox="0 0 20 20">
-                <path d="M3 4a1 1 0 011-1h12a1 1 0 011 1v2a1 1 0 01-1 1H4a1 1 0 01-1-1V4zM3 10a1 1 0 011-1h6a1 1 0 011 1v6a1 1 0 01-1 1H4a1 1 0 01-1-1v-6zM14 9a1 1 0 00-1 1v6a1 1 0 001 1h2a1 1 0 001-1v-6a1 1 0 00-1-1h-2z"/>
+                <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-8.293l-3-3a1 1 0 00-1.414 1.414L10.586 9.5 8.707 7.621a1 1 0 00-1.414 1.414l3 3a1 1 0 001.414 0z" clip-rule="evenodd"/>
               </svg>
             </div>
           </div>
@@ -254,107 +278,66 @@ onMounted(async () => {
         </div>
       </div>
 
-      <!-- Estadísticas de Tareas Asignadas -->
-      <div class="mb-6">
-        <div class="flex justify-between items-center mb-4">
-          <h2 class="text-xl font-semibold text-dark-900">Mis Tareas Asignadas</h2>
-          <AppButton
-            variant="info"
-            size="sm"
-            @click="goToAllTasks"
-          >
-            Ver Todas
-          </AppButton>
-        </div>
-        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-          <div class="bg-white rounded-lg shadow-sm border border-dark-200 p-6">
-            <div class="flex items-center">
-              <div class="flex-1">
-                <p class="text-sm font-medium text-dark-600">Total Tareas</p>
-                <p class="text-2xl font-bold text-dark-900">{{ taskStats.total }}</p>
-              </div>
-              <div class="w-12 h-12 bg-info-100 rounded-lg flex items-center justify-center">
-                <svg class="w-6 h-6 text-info-600" fill="currentColor" viewBox="0 0 20 20">
-                  <path d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/>
-                </svg>
-              </div>
+      <!-- Filtros y búsqueda -->
+      <div class="bg-white rounded-lg shadow-sm border border-dark-200 p-6 mb-6">
+        <div class="flex flex-col md:flex-row md:items-center md:justify-between space-y-4 md:space-y-0">
+          <div class="flex flex-col md:flex-row md:items-center space-y-4 md:space-y-0 md:space-x-4">
+            <!-- Filtro por estado -->
+            <div>
+              <label class="block text-sm font-medium text-dark-700 mb-2">Estado</label>
+              <select 
+                v-model="filterStatus"
+                class="px-3 py-2 border border-dark-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-primary-500"
+              >
+                <option v-for="option in statusOptions" :key="option.value" :value="option.value">
+                  {{ option.label }}
+                </option>
+              </select>
+            </div>
+
+            <!-- Búsqueda -->
+            <div>
+              <label class="block text-sm font-medium text-dark-700 mb-2">Buscar</label>
+              <input
+                v-model="searchQuery"
+                type="text"
+                placeholder="Buscar proyectos..."
+                class="px-3 py-2 border border-dark-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-primary-500"
+              />
             </div>
           </div>
 
-          <div class="bg-white rounded-lg shadow-sm border border-dark-200 p-6">
-            <div class="flex items-center">
-              <div class="flex-1">
-                <p class="text-sm font-medium text-dark-600">Pendientes</p>
-                <p class="text-2xl font-bold text-warning-600">{{ taskStats.pending }}</p>
-              </div>
-              <div class="w-12 h-12 bg-warning-100 rounded-lg flex items-center justify-center">
-                <svg class="w-6 h-6 text-warning-600" fill="currentColor" viewBox="0 0 20 20">
-                  <path d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92z"/>
-                </svg>
-              </div>
-            </div>
-          </div>
-
-          <div class="bg-white rounded-lg shadow-sm border border-dark-200 p-6">
-            <div class="flex items-center">
-              <div class="flex-1">
-                <p class="text-sm font-medium text-dark-600">En Progreso</p>
-                <p class="text-2xl font-bold text-primary-600">{{ taskStats.in_progress }}</p>
-              </div>
-              <div class="w-12 h-12 bg-primary-100 rounded-lg flex items-center justify-center">
-                <svg class="w-6 h-6 text-primary-600" fill="currentColor" viewBox="0 0 20 20">
-                  <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-8.293l-3-3a1 1 0 00-1.414 1.414L10.586 9.5 8.707 7.621a1 1 0 00-1.414 1.414l3 3a1 1 0 001.414 0z" clip-rule="evenodd"/>
-                </svg>
-              </div>
-            </div>
-          </div>
-
-          <div class="bg-white rounded-lg shadow-sm border border-dark-200 p-6">
-            <div class="flex items-center">
-              <div class="flex-1">
-                <p class="text-sm font-medium text-dark-600">Completadas</p>
-                <p class="text-2xl font-bold text-secondary-600">{{ taskStats.completed }}</p>
-              </div>
-              <div class="w-12 h-12 bg-secondary-100 rounded-lg flex items-center justify-center">
-                <svg class="w-6 h-6 text-secondary-600" fill="currentColor" viewBox="0 0 20 20">
-                  <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd"/>
-                </svg>
-              </div>
-            </div>
+          <div class="text-sm text-dark-600">
+            Mostrando {{ allProjects.length }} de {{ projects.length }} proyectos
           </div>
         </div>
       </div>
 
       <!-- Lista de Proyectos -->
       <div class="bg-white rounded-lg shadow-sm border border-dark-200 p-6">
-        <h2 class="text-xl font-semibold text-dark-900 mb-6">Mis Proyectos</h2>
-
-        <!-- Loading state -->
-        <div v-if="loading" class="flex justify-center items-center py-12">
-          <div class="animate-spin rounded-full h-12 w-12 border-b-2 border-primary-600"></div>
+        <h2 class="text-xl font-semibold text-dark-900 mb-6">Todos los Proyectos</h2>
+        
+        <div v-if="loading" class="text-center py-12">
+          <div class="animate-spin rounded-full h-12 w-12 border-b-2 border-primary-600 mx-auto"></div>
+          <p class="text-dark-600 mt-4">Cargando proyectos...</p>
         </div>
 
-        <!-- Empty state -->
-        <div v-else-if="userProjects.length === 0" class="text-center py-12">
+        <div v-else-if="allProjects.length === 0" class="text-center py-12">
           <svg class="mx-auto h-12 w-12 text-dark-400" stroke="currentColor" fill="none" viewBox="0 0 48 48">
             <path d="M34 40h10v-4a6 6 0 00-10.712-3.714M34 40H14m20 0v-4a9.971 9.971 0 00-.712-3.714M14 40H4v-4a6 6 0 0110.713-3.714M14 40v-4c0-1.313.253-2.566.713-3.714m0 0A10.003 10.003 0 0124 26c4.21 0 7.813 2.602 9.288 6.286M30 14a6 6 0 11-12 0 6 6 0 0112 0zm12 6a4 4 0 11-8 0 4 4 0 018 0zm-28 0a4 4 0 11-8 0 4 4 0 018 0z" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
           </svg>
-          <h3 class="mt-2 text-sm font-medium text-dark-900">No tienes proyectos</h3>
-          <p class="mt-1 text-sm text-dark-500">Comienza creando tu primer proyecto.</p>
+          <h3 class="mt-2 text-sm font-medium text-dark-900">No hay proyectos</h3>
+          <p class="mt-1 text-sm text-dark-500">Comienza creando un nuevo proyecto.</p>
           <div class="mt-6">
-            <AppButton
-              variant="primary"
-              @click="showCreateModal = true"
-            >
-              + Crear Proyecto
+            <AppButton variant="primary" @click="showCreateModal = true">
+              + Nuevo Proyecto
             </AppButton>
           </div>
         </div>
 
-        <!-- Grid de proyectos -->
         <div v-else class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
           <ProjectCard
-            v-for="project in userProjects"
+            v-for="project in allProjects"
             :key="project.id"
             :project="project"
             @edit="handleEditProject"
@@ -396,21 +379,18 @@ onMounted(async () => {
     <!-- Modal de confirmación para eliminar -->
     <AppModal
       v-model="showDeleteModal"
-      title="Confirmar Eliminación"
+      title="Eliminar Proyecto"
       :maxWidth="'md'"
     >
-      <div class="text-center">
-        <div class="mx-auto flex items-center justify-center h-12 w-12 rounded-full bg-danger-100 mb-4">
-          <svg class="h-6 w-6 text-danger-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.964-.833-2.732 0L3.732 16.5c-.77.833.192 2.5 1.732 2.5z"/>
-          </svg>
-        </div>
-        <h3 class="text-lg font-medium text-dark-900 mb-2">¿Eliminar proyecto?</h3>
-        <p class="text-sm text-dark-500 mb-6">
-          ¿Estás seguro de que deseas eliminar el proyecto "{{ selectedProject?.name }}"?
+      <div class="space-y-4">
+        <p class="text-dark-700">
+          ¿Estás seguro de que quieres eliminar el proyecto <strong>{{ selectedProject?.name }}</strong>?
+        </p>
+        <p class="text-sm text-danger-600">
           Esta acción no se puede deshacer.
         </p>
-        <div class="flex justify-center space-x-3">
+        
+        <div class="flex justify-end space-x-3 pt-4">
           <AppButton
             variant="secondary"
             @click="showDeleteModal = false"

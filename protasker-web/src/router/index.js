@@ -6,6 +6,9 @@ import Login from '../views/Login.vue'
 import Dashboard from '../views/Dashboard.vue'
 import DashboardDev from '../views/DashboardDev.vue'
 import DashboardAdmin from '../views/DashboardAdmin.vue'
+import AdminProjects from '../views/AdminProjects.vue'
+import AdminUsers from '../views/AdminUsers.vue'
+import AllTasks from '../views/AllTasks.vue'
 import ProjectTasks from '../views/ProjectTasks.vue'
 
 // Definir rutas
@@ -42,6 +45,32 @@ const routes = [
     meta: { 
       requiresAuth: true,
       requiresRole: 'administrador'
+    }
+  },
+  {
+    path: '/admin/projects',
+    name: 'AdminProjects',
+    component: AdminProjects,
+    meta: { 
+      requiresAuth: true,
+      requiresRole: 'administrador'
+    }
+  },
+  {
+    path: '/admin/users',
+    name: 'AdminUsers',
+    component: AdminUsers,
+    meta: { 
+      requiresAuth: true,
+      requiresRole: 'administrador'
+    }
+  },
+  {
+    path: '/tasks/all',
+    name: 'AllTasks',
+    component: AllTasks,
+    meta: { 
+      requiresAuth: true
     }
   },
   {

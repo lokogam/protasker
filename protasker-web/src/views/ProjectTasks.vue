@@ -6,12 +6,13 @@ import { useProjects } from '../composables/useProjects.js'
 import { useAuth } from '../composables/useAuth.js'
 import TaskCard from '../components/cards/TaskCard.vue'
 import TaskForm from '../components/forms/TaskForm.vue'
+import ProgressBar from '../components/common/ProgressBar.vue'
 import AppButton from '../components/common/AppButton.vue'
 import AppModal from '../components/common/AppModal.vue'
 
 const route = useRoute()
 const router = useRouter()
-const { user } = useAuth()
+const { user, logout } = useAuth()
 const { 
   tasks, 
   loading, 
@@ -29,6 +30,7 @@ const project = ref(null)
 const projectLoading = ref(false)
 const showCreateModal = ref(false)
 const showEditModal = ref(false)
+const showViewModal = ref(false)
 const showDeleteModal = ref(false)
 const selectedTask = ref(null)
 const formLoading = ref(false)
@@ -110,13 +112,19 @@ const handleEditTask = (task) => {
 
 const handleUpdateTask = async (taskData) => {
   formLoading.value = true
+  console.log('Updating task with data:', taskData)
+  console.log('Selected task ID:', selectedTask.value?.id)
+  
   try {
-    await updateTask(selectedTask.value.id, taskData)
+    const result = await updateTask(selectedTask.value.id, taskData)
+    console.log('Update result:', result)
     showEditModal.value = false
     selectedTask.value = null
     await loadProjectData() // Refrescar datos
   } catch (error) {
     console.error('Error updating task:', error)
+    // Mostrar error al usuario
+    alert('Error al actualizar la tarea: ' + error.message)
   } finally {
     formLoading.value = false
   }
@@ -139,8 +147,8 @@ const confirmDeleteTask = async () => {
 }
 
 const handleViewTask = (task) => {
-  // TODO: Implementar vista de detalles de tarea
-  console.log('Ver tarea:', task)
+  selectedTask.value = task
+  showViewModal.value = true
 }
 
 const handleAssignTask = (task) => {
@@ -158,9 +166,25 @@ const goBack = () => {
   }
 }
 
+// Manejar cierre de sesión
+const handleLogout = async () => {
+  try {
+    await logout()
+    router.push('/login')
+  } catch (error) {
+    console.error('Error al cerrar sesión:', error)
+  }
+}
+
 // Cargar datos al montar el componente
 onMounted(() => {
   clearTasks() // Limpiar tareas previas
+  
+  // Aplicar filtro desde URL si existe
+  if (route.query.status && route.query.status !== 'all') {
+    filterStatus.value = route.query.status
+  }
+  
   loadProjectData()
 })
 </script>
@@ -203,24 +227,27 @@ onMounted(() => {
               </div>
             </div>
             
-            <AppButton
-              variant="primary"
-              @click="showCreateModal = true"
-            >
-              + Nueva Tarea
-            </AppButton>
+            <div class="flex items-center space-x-3">
+              <AppButton
+                variant="primary"
+                @click="showCreateModal = true"
+              >
+                + Nueva Tarea
+              </AppButton>
+              
+              <AppButton
+                variant="secondary"
+                @click="handleLogout"
+              >
+                Cerrar Sesión
+              </AppButton>
+            </div>
           </div>
 
           <!-- Barra de progreso del proyecto -->
           <div v-if="project" class="mt-4">
             <div class="w-full bg-dark-200 rounded-full h-3">
-              <div 
-                :class="`h-3 rounded-full transition-all duration-300 ${
-                  project.progress >= 100 ? 'bg-secondary-500' :
-                  project.progress >= 50 ? 'bg-primary-500' : 'bg-warning-500'
-                }`"
-                :style="{ width: `${project.progress || 0}%` }"
-              ></div>
+              <ProgressBar :progress="Number(project.progress)" size="md" />
             </div>
           </div>
         </div>
@@ -385,7 +412,7 @@ onMounted(() => {
     <AppModal
       v-model="showCreateModal"
       title="Crear Nueva Tarea"
-      max-width="2xl"
+      :maxWidth="'2xl'"
     >
       <TaskForm
         :project-id="projectId"
@@ -399,7 +426,7 @@ onMounted(() => {
     <AppModal
       v-model="showEditModal"
       title="Editar Tarea"
-      max-width="2xl"
+      :maxWidth="'2xl'"
     >
       <TaskForm
         :task="selectedTask"
@@ -409,11 +436,111 @@ onMounted(() => {
       />
     </AppModal>
 
+    <!-- Modal para ver detalles de tarea -->
+    <AppModal
+      v-model="showViewModal"
+      title="Detalles de la Tarea"
+      :maxWidth="'2xl'"
+    >
+      <div v-if="selectedTask" class="space-y-6">
+        <!-- Encabezado con título y estado -->
+        <div class="flex justify-between items-start">
+          <div>
+            <h3 class="text-xl font-semibold text-dark-900">{{ selectedTask.name }}</h3>
+            <div class="mt-2">
+              <span 
+                class="inline-flex items-center px-3 py-1 rounded-full text-sm font-medium"
+                :class="{
+                  'bg-warning-100 text-warning-800': selectedTask.status === 'pending',
+                  'bg-primary-100 text-primary-800': selectedTask.status === 'in_progress',
+                  'bg-secondary-100 text-secondary-800': selectedTask.status === 'completed'
+                }"
+              >
+                {{ 
+                  selectedTask.status === 'pending' ? 'Pendiente' : 
+                  selectedTask.status === 'in_progress' ? 'En Progreso' : 
+                  'Completada' 
+                }}
+              </span>
+            </div>
+          </div>
+          <div class="text-right">
+            <div class="text-2xl font-bold text-primary-600">{{ selectedTask.percentage }}%</div>
+            <div class="text-sm text-dark-600">Progreso</div>
+          </div>
+        </div>
+
+        <!-- Barra de progreso -->
+        <div class="w-full bg-dark-200 rounded-full h-3">
+          <ProgressBar :progress="Number(selectedTask.percentage)" size="md" />
+        </div>
+
+        <!-- Información de la tarea -->
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+          <div class="space-y-4">
+            <div>
+              <label class="block text-sm font-medium text-dark-700 mb-1">Descripción</label>
+              <p class="text-dark-900 bg-dark-50 rounded-lg p-3">{{ selectedTask.description || 'Sin descripción' }}</p>
+            </div>
+            
+            <div>
+              <label class="block text-sm font-medium text-dark-700 mb-1">Proyecto</label>
+              <p class="text-dark-900">{{ selectedTask.project?.name }}</p>
+            </div>
+          </div>
+
+          <div class="space-y-4">
+            <div>
+              <label class="block text-sm font-medium text-dark-700 mb-1">Asignado a</label>
+              <p class="text-dark-900">{{ selectedTask.assigned_user?.name || 'Sin asignar' }}</p>
+              <p v-if="selectedTask.assigned_user?.email" class="text-sm text-dark-600">{{ selectedTask.assigned_user.email }}</p>
+            </div>
+            
+            <div>
+              <label class="block text-sm font-medium text-dark-700 mb-1">Fecha de vencimiento</label>
+              <p class="text-dark-900">{{ selectedTask.due_date || 'Sin fecha límite' }}</p>
+            </div>
+          </div>
+        </div>
+
+        <!-- Fechas de creación y actualización -->
+        <div class="border-t border-dark-200 pt-4">
+          <div class="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm text-dark-600">
+            <div>
+              <span class="font-medium">Creada:</span> {{ selectedTask.created_at }}
+            </div>
+            <div>
+              <span class="font-medium">Última actualización:</span> {{ selectedTask.updated_at }}
+            </div>
+          </div>
+        </div>
+
+        <!-- Botones de acción -->
+        <div class="flex justify-end space-x-3 pt-4 border-t border-dark-200">
+          <AppButton
+            variant="secondary"
+            @click="showViewModal = false"
+          >
+            Cerrar
+          </AppButton>
+          <AppButton
+            variant="primary"
+            @click="() => {
+              showViewModal = false
+              handleEditTask(selectedTask)
+            }"
+          >
+            Editar Tarea
+          </AppButton>
+        </div>
+      </div>
+    </AppModal>
+
     <!-- Modal de confirmación para eliminar -->
     <AppModal
       v-model="showDeleteModal"
       title="Confirmar Eliminación"
-      max-width="md"
+      :maxWidth="'md'"
     >
       <div class="text-center">
         <div class="mx-auto flex items-center justify-center h-12 w-12 rounded-full bg-danger-100 mb-4">

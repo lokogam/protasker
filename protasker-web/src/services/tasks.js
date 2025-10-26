@@ -6,7 +6,7 @@ export const taskService = {
   async getTasks(filters = {}) {
     try {
       const params = new URLSearchParams()
-      
+
       if (filters.project_id) params.append('project_id', filters.project_id)
       if (filters.status) params.append('status', filters.status)
       if (filters.assigned_to) params.append('assigned_to', filters.assigned_to)
@@ -16,9 +16,23 @@ export const taskService = {
       return { success: true, data: response.data }
     } catch (error) {
       console.error('Error fetching tasks:', error)
-      return { 
-        success: false, 
-        message: error.response?.data?.message || 'Error al obtener tareas' 
+      return {
+        success: false,
+        message: error.response?.data?.message || 'Error al obtener tareas'
+      }
+    }
+  },
+
+  // Obtener todas las tareas del sistema (sin filtro de proyecto)
+  async getAllTasks() {
+    try {
+      const response = await api.get('/tasks/all')
+      return { success: true, data: response.data }
+    } catch (error) {
+      console.error('Error fetching all tasks:', error)
+      return {
+        success: false,
+        message: error.response?.data?.message || 'Error al obtener todas las tareas'
       }
     }
   },
@@ -30,9 +44,9 @@ export const taskService = {
       return { success: true, data: response.data }
     } catch (error) {
       console.error('Error fetching project tasks:', error)
-      return { 
-        success: false, 
-        message: error.response?.data?.message || 'Error al obtener tareas del proyecto' 
+      return {
+        success: false,
+        message: error.response?.data?.message || 'Error al obtener tareas del proyecto'
       }
     }
   },
@@ -44,9 +58,9 @@ export const taskService = {
       return { success: true, data: response.data }
     } catch (error) {
       console.error('Error fetching user tasks:', error)
-      return { 
-        success: false, 
-        message: error.response?.data?.message || 'Error al obtener tareas del usuario' 
+      return {
+        success: false,
+        message: error.response?.data?.message || 'Error al obtener tareas del usuario'
       }
     }
   },
@@ -58,9 +72,9 @@ export const taskService = {
       return { success: true, data: response.data }
     } catch (error) {
       console.error('Error fetching task:', error)
-      return { 
-        success: false, 
-        message: error.response?.data?.message || 'Error al obtener tarea' 
+      return {
+        success: false,
+        message: error.response?.data?.message || 'Error al obtener tarea'
       }
     }
   },
@@ -72,8 +86,8 @@ export const taskService = {
       return { success: true, data: response.data }
     } catch (error) {
       console.error('Error creating task:', error)
-      return { 
-        success: false, 
+      return {
+        success: false,
         message: error.response?.data?.message || 'Error al crear tarea',
         errors: error.response?.data?.errors || {}
       }
@@ -87,8 +101,8 @@ export const taskService = {
       return { success: true, data: response.data }
     } catch (error) {
       console.error('Error updating task:', error)
-      return { 
-        success: false, 
+      return {
+        success: false,
         message: error.response?.data?.message || 'Error al actualizar tarea',
         errors: error.response?.data?.errors || {}
       }
@@ -102,9 +116,9 @@ export const taskService = {
       return { success: true }
     } catch (error) {
       console.error('Error deleting task:', error)
-      return { 
-        success: false, 
-        message: error.response?.data?.message || 'Error al eliminar tarea' 
+      return {
+        success: false,
+        message: error.response?.data?.message || 'Error al eliminar tarea'
       }
     }
   },
@@ -112,13 +126,13 @@ export const taskService = {
   // Obtener usuarios disponibles para asignación
   async getAvailableUsers() {
     try {
-      const response = await api.get('/users') // Asumiendo que existe este endpoint
+      const response = await api.get('/users/available') // Nuevo endpoint específico para asignación
       return { success: true, data: response.data }
     } catch (error) {
       console.error('Error fetching users:', error)
-      return { 
-        success: false, 
-        message: error.response?.data?.message || 'Error al obtener usuarios' 
+      return {
+        success: false,
+        message: error.response?.data?.message || 'Error al obtener usuarios'
       }
     }
   }

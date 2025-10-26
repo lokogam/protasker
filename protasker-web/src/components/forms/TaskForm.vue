@@ -1,5 +1,5 @@
 <script setup>
-import { ref, computed, onMounted } from 'vue'
+import { ref, computed, onMounted, watch } from 'vue'
 import { useTasks } from '../../composables/useTasks.js'
 import AppInput from '../common/AppInput.vue'
 import AppButton from '../common/AppButton.vue'
@@ -23,14 +23,17 @@ const emit = defineEmits(['submit', 'cancel'])
 
 const { fetchAvailableUsers, users } = useTasks()
 
+// Estado local para carga de usuarios
+const loadingUsers = ref(true)
+
 // Form data reactivo
 const form = ref({
   name: props.task?.name || '',
   description: props.task?.description || '',
-  project_id: props.task?.project_id || props.projectId || '',
-  assigned_to: props.task?.assigned_to || '',
+  project_id: props.task?.project_id || props.task?.project?.id || props.projectId || '',
+  assigned_to: props.task?.assigned_to ? props.task.assigned_to.toString() : (props.task?.assigned_user?.id ? props.task.assigned_user.id.toString() : ''),
   status: props.task?.status || 'pending',
-  percentage: props.task?.percentage || 0,
+  percentage: Number(props.task?.percentage) || 0,
   due_date: props.task?.due_date || ''
 })
 
@@ -39,6 +42,14 @@ const errors = ref({})
 
 // Computed para saber si es edición
 const isEditing = computed(() => !!props.task)
+
+// Computed para usuarios válidos
+const validUsers = computed(() => {
+  if (!users.value || !Array.isArray(users.value)) {
+    return []
+  }
+  return users.value.filter(user => user && user.id && user.name && user.email)
+})
 
 // Opciones de estado
 const statusOptions = [
@@ -82,10 +93,18 @@ const validateForm = () => {
 
 // Enviar formulario
 const handleSubmit = () => {
+  console.log('TaskForm handleSubmit called')
+  console.log('Form data:', form.value)
+  console.log('Is editing:', isEditing.value)
+  
   if (validateForm()) {
-    // Limpiar campos vacíos opcionales
+    // Limpiar campos vacíos opcionales y convertir tipos
     const submitData = { ...form.value }
-    if (!submitData.assigned_to) delete submitData.assigned_to
+    if (!submitData.assigned_to) {
+      delete submitData.assigned_to
+    } else {
+      submitData.assigned_to = Number(submitData.assigned_to)
+    }
     if (!submitData.due_date) delete submitData.due_date
     if (!submitData.percentage) submitData.percentage = 0
     
@@ -101,9 +120,31 @@ const clearError = (field) => {
 }
 
 // Cargar usuarios al montar el componente
-onMounted(() => {
-  fetchAvailableUsers()
+onMounted(async () => {
+  try {
+    await fetchAvailableUsers()
+  } catch (error) {
+    console.error('Error loading users in TaskForm:', error)
+    // Los usuarios quedarán como array vacío, lo cual es manejado por validUsers
+  } finally {
+    loadingUsers.value = false
+  }
 })
+
+// Watcher para actualizar el formulario cuando cambia la tarea
+watch(() => props.task, (newTask) => {
+  if (newTask) {
+    form.value = {
+      name: newTask.name || '',
+      description: newTask.description || '',
+      project_id: newTask.project_id || newTask.project?.id || props.projectId || '',
+      assigned_to: newTask.assigned_to ? newTask.assigned_to.toString() : (newTask.assigned_user?.id ? newTask.assigned_user.id.toString() : ''),
+      status: newTask.status || 'pending',
+      percentage: Number(newTask.percentage) || 0,
+      due_date: newTask.due_date || ''
+    }
+  }
+}, { immediate: true })
 </script>
 
 <template>
@@ -157,12 +198,19 @@ onMounted(() => {
           </label>
           <select
             v-model="form.assigned_to"
-            class="w-full px-3 py-2 border border-dark-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-primary-500"
+            :disabled="loadingUsers"
+            class="w-full px-3 py-2 border border-dark-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-primary-500 disabled:bg-dark-100 disabled:cursor-not-allowed"
             :class="{ 'border-danger-500 focus:ring-danger-500 focus:border-danger-500': errors.assigned_to }"
             @change="clearError('assigned_to')"
           >
-            <option value="">Sin asignar</option>
-            <option v-for="user in users" :key="user.id" :value="user.id">
+            <option value="">
+              {{ loadingUsers ? 'Cargando usuarios...' : 'Sin asignar' }}
+            </option>
+            <option 
+              v-for="user in validUsers" 
+              :key="user.id" 
+              :value="user.id.toString()"
+            >
               {{ user.name }} ({{ user.email }})
             </option>
           </select>

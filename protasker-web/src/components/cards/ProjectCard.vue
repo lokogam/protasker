@@ -1,5 +1,6 @@
 <script setup>
 import { computed } from 'vue'
+import ProgressBar from '../common/ProgressBar.vue'
 import AppButton from '../common/AppButton.vue'
 
 const props = defineProps({
@@ -13,7 +14,7 @@ const props = defineProps({
   }
 })
 
-const emit = defineEmits(['edit', 'delete', 'view'])
+const emit = defineEmits(['edit', 'delete', 'view', 'filter-tasks'])
 
 // Computed para el color de la barra de progreso
 const progressColor = computed(() => {
@@ -52,6 +53,22 @@ const formatDate = (date) => {
   if (!date) return 'No definida'
   return new Date(date).toLocaleDateString('es-ES')
 }
+
+// Computed para estadísticas de tareas
+const taskStats = computed(() => {
+  const tasks = props.project.tasks || []
+  return {
+    total: tasks.length,
+    completed: tasks.filter(t => t.status === 'completed').length,
+    pending: tasks.filter(t => t.status === 'pending').length,
+    in_progress: tasks.filter(t => t.status === 'in_progress').length
+  }
+})
+
+// Manejar click en contador de tareas
+const handleTaskFilter = (status) => {
+  emit('filter-tasks', { projectId: props.project.id, status })
+}
 </script>
 
 <template>
@@ -78,10 +95,7 @@ const formatDate = (date) => {
         <span class="text-sm text-dark-600">{{ project.progress || 0 }}%</span>
       </div>
       <div class="w-full bg-dark-200 rounded-full h-2">
-        <div 
-          :class="`h-2 rounded-full transition-all duration-300 ${progressColor}`"
-          :style="{ width: `${project.progress || 0}%` }"
-        ></div>
+        <ProgressBar :progress="Number(project.progress)" />
       </div>
     </div>
 
@@ -108,6 +122,49 @@ const formatDate = (date) => {
           {{ project.completed_tasks_count || 0 }} / {{ project.tasks_count || 0 }}
         </span>
       </div>
+    </div>
+
+    <!-- Contadores de Tareas (si hay tareas disponibles) -->
+    <div v-if="project.tasks && project.tasks.length > 0" class="mb-4">
+      <h4 class="text-sm font-medium text-dark-700 mb-3">Estado de Tareas</h4>
+      <div class="grid grid-cols-3 gap-2">
+        <!-- Completadas -->
+        <button
+          @click="handleTaskFilter('completed')"
+          class="bg-secondary-50 hover:bg-secondary-100 p-3 rounded-lg text-center transition-colors cursor-pointer border border-transparent hover:border-secondary-200"
+        >
+          <p class="text-lg font-bold text-secondary-600">{{ taskStats.completed }}</p>
+          <p class="text-xs text-dark-600">Completadas</p>
+        </button>
+        
+        <!-- En progreso -->
+        <button
+          @click="handleTaskFilter('in_progress')"
+          class="bg-primary-50 hover:bg-primary-100 p-3 rounded-lg text-center transition-colors cursor-pointer border border-transparent hover:border-primary-200"
+        >
+          <p class="text-lg font-bold text-primary-600">{{ taskStats.in_progress }}</p>
+          <p class="text-xs text-dark-600">En Progreso</p>
+        </button>
+        
+        <!-- Pendientes -->
+        <button
+          @click="handleTaskFilter('pending')"
+          class="bg-warning-50 hover:bg-warning-100 p-3 rounded-lg text-center transition-colors cursor-pointer border border-transparent hover:border-warning-200"
+        >
+          <p class="text-lg font-bold text-warning-600">{{ taskStats.pending }}</p>
+          <p class="text-xs text-dark-600">Pendientes</p>
+        </button>
+      </div>
+      
+      <!-- Total de tareas -->
+      <button
+        @click="handleTaskFilter('all')"
+        class="w-full mt-2 bg-dark-50 hover:bg-dark-100 p-2 rounded-lg text-center transition-colors cursor-pointer border border-transparent hover:border-dark-200"
+      >
+        <p class="text-sm font-medium text-dark-700">
+          Total: {{ taskStats.total }} tareas
+        </p>
+      </button>
     </div>
 
     <!-- Acciones -->
@@ -143,6 +200,7 @@ const formatDate = (date) => {
 .line-clamp-2 {
   display: -webkit-box;
   -webkit-line-clamp: 2;
+  line-clamp: 2;
   -webkit-box-orient: vertical;
   overflow: hidden;
 }

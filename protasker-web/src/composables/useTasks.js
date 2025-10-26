@@ -42,6 +42,30 @@ export function useTasks() {
     }
   }
 
+  // Obtener todas las tareas del sistema (sin filtros de proyecto)
+  const fetchAllTasks = async () => {
+    loading.value = true
+    error.value = ''
+
+    try {
+      const result = await taskService.getAllTasks()
+      
+      if (result.success) {
+        tasks.value = result.data.data || result.data
+        return result.data
+      } else {
+        error.value = result.message
+        return null
+      }
+    } catch (err) {
+      error.value = 'Error inesperado al obtener todas las tareas'
+      console.error('Error fetching all tasks:', err)
+      return null
+    } finally {
+      loading.value = false
+    }
+  }
+
   // Obtener tareas de un proyecto específico
   const fetchProjectTasks = async (projectId) => {
     loading.value = true
@@ -197,14 +221,18 @@ export function useTasks() {
       const result = await taskService.getAvailableUsers()
       
       if (result.success) {
-        users.value = result.data
-        return result.data
+        // Asegurar que users.value sea siempre un array válido
+        const userData = result.data?.data || result.data
+        users.value = Array.isArray(userData) ? userData : []
+        return users.value
       } else {
         console.error('Error fetching users:', result.message)
+        users.value = []
         return []
       }
     } catch (err) {
       console.error('Error fetching users:', err)
+      users.value = []
       return []
     }
   }
@@ -229,6 +257,7 @@ export function useTasks() {
 
     // Acciones
     fetchTasks,
+    fetchAllTasks,
     fetchProjectTasks,
     fetchUserTasks,
     fetchTask,

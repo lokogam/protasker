@@ -1,6 +1,6 @@
 <script setup>
 const props = defineProps({
-  show: {
+  modelValue: {
     type: Boolean,
     default: false
   },
@@ -8,24 +8,27 @@ const props = defineProps({
     type: String,
     default: ''
   },
-  size: {
+  maxWidth: {
     type: String,
     default: 'md',
-    validator: (value) => ['sm', 'md', 'lg', 'xl'].includes(value)
+    validator: (value) => ['sm', 'md', 'lg', 'xl', '2xl', '3xl', '4xl'].includes(value)
   }
 })
 
-const emit = defineEmits(['close'])
+const emit = defineEmits(['update:modelValue'])
 
 const sizeClasses = {
-  sm: 'max-w-md',
-  md: 'max-w-lg',
-  lg: 'max-w-2xl',
-  xl: 'max-w-4xl'
+  sm: 'max-w-sm',
+  md: 'max-w-md',
+  lg: 'max-w-lg',
+  xl: 'max-w-xl',
+  '2xl': 'max-w-2xl',
+  '3xl': 'max-w-3xl',
+  '4xl': 'max-w-4xl'
 }
 
 const closeModal = () => {
-  emit('close')
+  emit('update:modelValue', false)
 }
 
 const handleBackdropClick = (event) => {
@@ -46,7 +49,7 @@ const handleBackdropClick = (event) => {
       leave-to-class="opacity-0"
     >
       <div
-        v-if="show"
+        v-if="modelValue"
         class="fixed inset-0 z-50 flex items-center justify-center bg-dark-800 bg-opacity-50"
         @click="handleBackdropClick"
       >
@@ -59,8 +62,8 @@ const handleBackdropClick = (event) => {
           leave-to-class="opacity-0 scale-95"
         >
           <div
-            v-if="show"
-            :class="`bg-white rounded-lg shadow-xl w-full mx-4 ${sizeClasses[size]}`"
+            v-if="modelValue"
+            :class="`bg-white rounded-lg shadow-xl w-full mx-4 ${sizeClasses[maxWidth]}`"
           >
             <!-- Header -->
             <div v-if="title || $slots.header" class="flex items-center justify-between p-6 border-b border-dark-200">

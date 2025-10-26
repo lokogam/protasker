@@ -77,6 +77,19 @@ const handleLogin = async () => {
         </button>
       </form>
 
+      <!-- Link para registro -->
+      <div class="text-center mt-6">
+        <p class="text-sm text-dark-600">
+          ¿No tienes una cuenta?
+          <router-link
+            to="/register"
+            class="font-medium text-primary-600 hover:text-primary-500 transition-colors duration-200"
+          >
+            Registrarse como desarrollador
+          </router-link>
+        </p>
+      </div>
+
       <!-- Test Credentials -->
       <div class="bg-info-50 border border-info-200 text-info-700 px-4 py-3 rounded-lg text-sm">
         <p class="font-medium mb-1">Credenciales de prueba:</p>

@@ -7,16 +7,41 @@ export const authService = {
     try {
       const response = await api.post('/login', { email, password })
       const { token, user } = response.data
-      
+
       // Guardar token y usuario en localStorage
       localStorage.setItem('token', token)
       localStorage.setItem('user', JSON.stringify(user))
-      
+
       return { success: true, data: { token, user } }
     } catch (error) {
-      return { 
-        success: false, 
-        message: error.response?.data?.message || 'Error en el login' 
+      return {
+        success: false,
+        message: error.response?.data?.message || 'Error en el login'
+      }
+    }
+  },
+
+  // Registro de nuevo usuario
+  async register(name, email, password, passwordConfirmation) {
+    try {
+      const response = await api.post('/register', {
+        name,
+        email,
+        password,
+        password_confirmation: passwordConfirmation
+      })
+      const { token, user } = response.data
+
+      // Guardar token y usuario en localStorage
+      localStorage.setItem('token', token)
+      localStorage.setItem('user', JSON.stringify(user))
+
+      return { success: true, data: { token, user } }
+    } catch (error) {
+      return {
+        success: false,
+        message: error.response?.data?.message || 'Error en el registro',
+        errors: error.response?.data?.errors || {}
       }
     }
   },
@@ -38,10 +63,10 @@ export const authService = {
     try {
       const response = await api.get('/user')
       const user = response.data
-      
+
       // Actualizar usuario en localStorage
       localStorage.setItem('user', JSON.stringify(user))
-      
+
       return user
     } catch (error) {
       console.error('Error getting user:', error)

@@ -32,6 +32,29 @@ export function useAuth() {
     }
   }
 
+  // Función para hacer registro
+  const register = async (name, email, password, passwordConfirmation) => {
+    loading.value = true
+    error.value = ''
+
+    try {
+      const result = await authService.register(name, email, password, passwordConfirmation)
+      
+      if (result.success) {
+        user.value = result.data.user
+        return { success: true }
+      } else {
+        error.value = result.message
+        return { success: false, errors: result.errors }
+      }
+    } catch (err) {
+      error.value = 'Error inesperado'
+      return { success: false }
+    } finally {
+      loading.value = false
+    }
+  }
+
   // Función para hacer logout
   const logout = () => {
     authService.logout()
@@ -57,6 +80,7 @@ export function useAuth() {
     loading: computed(() => loading.value),
     error: computed(() => error.value),
     login,
+    register,
     logout,
     getUser
   }

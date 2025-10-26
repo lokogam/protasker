@@ -3,6 +3,7 @@ import { authService } from '../services/auth.js'
 
 // Importar vistas
 import Login from '../views/Login.vue'
+import Register from '../views/Register.vue'
 import Dashboard from '../views/Dashboard.vue'
 import DashboardDev from '../views/DashboardDev.vue'
 import DashboardAdmin from '../views/DashboardAdmin.vue'
@@ -21,6 +22,12 @@ const routes = [
     path: '/login',
     name: 'Login',
     component: Login,
+    meta: { requiresGuest: true }
+  },
+  {
+    path: '/register',
+    name: 'Register',
+    component: Register,
     meta: { requiresGuest: true }
   },
   {

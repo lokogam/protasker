@@ -216,7 +216,9 @@ Este proyecto está bajo la Licencia MIT - ver [LICENSE](LICENSE) para detalles.
 
 ## 👨‍💻 Desarrollado por
 
-**[Tu Nombre]** - *Desarrollador Full Stack*
+LinkedIn: [Duvan Gamboa](https://www.linkedin.com/in/duvan-gamboa-5193951b2/)  
+Email: [duvangamboa8@gmail.com](mailto:duvangamboa8@gmail.com)
+Web: [lokogam.github.io/Duvan-Gamboa](https://lokogam.github.io/Duvan-Gamboa/)
 
 ---
 
